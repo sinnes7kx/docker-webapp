@@ -1,0 +1,38 @@
+
+name: Docker CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Hämta koden
+        uses: actions/checkout@v6
+
+      - name: Bygg Docker-image
+        run: docker build -t min-webbapp:test .
+
+      - name: Starta containern
+        run: docker run -d --name test-webbapp -p 8080:80 min-webbapp:test
+
+      - name: Testa webbsidan
+        run: |
+          for i in {1..10}; do
+            if curl -fsS http://localhost:8080/ | grep -Fq "Version 2!"; then
+              echo "Test lyckades!"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Test misslyckades!"
+          docker logs test-webbapp
+          exit 1
