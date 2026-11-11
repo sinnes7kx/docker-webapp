@@ -36,3 +36,32 @@ jobs:
           echo "Test misslyckades!"
           docker logs test-webbapp
           exit 1
+
+  publish-image:
+    needs: build-and-test
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Hämta koden
+        uses: actions/checkout@v6
+
+      - name: Logga in på GitHub Container Registry
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "$GH_TOKEN" | docker login ghcr.io \
+            -u "${{ github.actor }}" --password-stdin
+
+      - name: Bygg Docker-image
+        run: |
+          docker build -t ghcr.io/sinnes7kx/docker-webapp:latest .
+
+      - name: Publicera Docker-image
+        run: |
+          docker push ghcr.io/sinnes7kx/docker-webapp:latest
+
